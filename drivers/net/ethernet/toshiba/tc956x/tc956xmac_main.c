@@ -7747,7 +7747,7 @@ static int tc956xmac_open(struct net_device *dev)
 		/* Do not re-request WOL irq resources during resume sequence. */
 		if (priv->tc956x_port_pm_suspend == false) {
 			/* Request the Wake IRQ in case of another line is used for WoL */
-			if (priv->wol_irq != dev->irq) {
+			if (priv->wol_irq && priv->wol_irq != dev->irq) {
 				pwol_dev_name = priv->int_name_wol;
 				snprintf(pwol_dev_name, sizeof(priv->int_name_wol), "%s_wol", dev->name);
 				ret = request_irq(priv->wol_irq, tc956xmac_wol_interrupt,
@@ -8048,7 +8048,7 @@ static int tc956xmac_release(struct net_device *dev)
 
 		/* Do not Free Host Irq resources during suspend sequence */
 		if (priv->tc956x_port_pm_suspend == false) {
-			if (priv->wol_irq != dev->irq)
+			if (priv->wol_irq && priv->wol_irq != dev->irq)
 				free_irq(priv->wol_irq, dev);
 	#ifndef TC956X
 			if (priv->lpi_irq > 0)
