@@ -15348,8 +15348,9 @@ static bool lookfor_macid(char *file_buf, uint8_t port_id, uint8_t dev_id)
  * \return None
  *
  */
-static void parse_config_file(uint8_t port_id, uint8_t dev_id)
+static void parse_config_file(struct net_device *dev, uint8_t port_id, uint8_t dev_id)
 {
+	struct tc956xmac_priv *priv = netdev_priv(dev);
 	void *data = NULL;
 	char *cdata;
 	int ret, i;
@@ -15362,8 +15363,11 @@ static void parse_config_file(uint8_t port_id, uint8_t dev_id)
 	ret = kernel_read_file_from_path("config.ini", &data, &size, 3000, READING_POLICY);
 #endif
 	if (ret < 0) {
-		KPRINT_ERR("Mac configuration file not found\n");
-		KPRINT_INFO("Using Default MAC Address\n");
+		/* There's no predefined MAC address so set a random
+		 * address and let userland take care of handling it.
+		 */
+		eth_random_addr(dev_addr[priv->probe_seq_no]);
+		dev->addr_assign_type = NET_ADDR_RANDOM;
 		return;
 	} else {
 
@@ -15753,14 +15757,14 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 #else
 #ifdef TC956X_SRIOV_VF
 	/* To be enabled for config.ini parsing */
-	parse_config_file(priv->port_num, priv->plat->vf_id);
+	parse_config_file(priv->dev, priv->port_num, priv->plat->vf_id);
 #else
 	ret = of_get_mac_address(priv->device->of_node, dev_addr[priv->probe_seq_no]);
 	if (ret == -EPROBE_DEFER)
 		return dev_err_probe(priv->device, ret,
 				     "Deferring probe for MAC address from DTB/NVMEM\n");
 	if (ret)
-		parse_config_file(priv->port_num, 0);
+		parse_config_file(priv->dev, priv->port_num, 0);
 #endif
 #endif /* EEPROM_MAC_ADDR */
 #ifndef TC956X_SRIOV_VF
